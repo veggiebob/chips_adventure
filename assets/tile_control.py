@@ -19,11 +19,14 @@ class Tilemap:
         [1, 1]
     ]
     TILE_SIZE = 16
-    def __init__ (self, filepath):
+    def __init__ (self, filepath, opacity=1.0):
         self.filepath = filepath
         self.image = pygame.Surface((100, 100))
+        self.opacity_image = pygame.Surface((100, 100))
         self.images = []
+        self.oimages = []
         self.loaded = False
+        self.opacity = opacity
         self.load()
     def get_image (self, up, right, down, left):
         if not self.loaded:
@@ -33,23 +36,49 @@ class Tilemap:
         if not self.loaded:
             return
         return self.images[ind]
+    def get_oimage (self, up, right, down, left):
+        if not self.loaded:
+            return
+        return self.oimages[up + right * 2 + down * 4 + left * 8]
+    def get_oimage_index (self, ind):
+        if not self.loaded:
+            return
+        return self.oimages[ind]
     def load_file (self):
         if self.loaded:
             print('reloading from file destination')
         self.image = pygame.image.load(self.filepath)
+        self.opacity_image = self.generate_opacity_image(self.image, self.opacity)
+    def generate_opacity_image (self, img, opacity=1.0):
+        opacity_image = pygame.Surface((img.get_width(), img.get_height()))
+        for i in range(img.get_height()):
+            for j in range(img.get_width()):
+                p = img.get_at([j, i])
+                br = (p.r + p.g + p.b) / 3
+                if br < 3:
+                    opacity_image.set_at([j, i], (0, 0, 0))
+                else:
+                    b = 255 * opacity
+                    opacity_image.set_at([j, i], (b, b, b))
+
+        return opacity_image
     def load_images (self, screen=None):
         if self.loaded:
             print('reloading images')
         imgHelp = ImageHelper(self.image)
+        oimgHelp = ImageHelper(self.opacity_image)
         self.images = []
+        self.oimages = []
         ts = Tilemap.TILE_SIZE
         if screen is not None:
             screen.blit(self.image, (0, 0))
+            screen.blit(self.opacity_image, (self.image.get_width(), 0))
         for i in Tilemap.TILE_POSITION_INDEXER:
             gx = i[0]*ts
             gy = i[1]*ts
             #print('getting from %d, %d'%(gx, gy))
             self.images.append(imgHelp.get_sub(gx, gy, ts, ts))
+            self.oimages.append(oimgHelp.get_sub(gx, gy, ts, ts))
             if screen is not None:
                 pygame.draw.rect(screen, (0, 0, 255), pygame.Rect(gx+ts*0.05, gy+ts*0.05, ts*0.9, ts*0.9), 1)
     def load (self, screen=None):

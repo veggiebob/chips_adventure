@@ -17,6 +17,8 @@ testtmp = Tilemap('assets/tilemaps/testing_tilemap.png')
 grasstmp = Tilemap('assets/tilemaps/grass_tilemap.png')
 metaltmp = Tilemap('assets/tilemaps/metal_tilemap.png')
 woodtmp = Tilemap('assets/tilemaps/wood_tilemap.png')
+#more go here
+
 emptytmp = Tilemap('assets/tilemaps/testing_tilemap.png')
 emptytmp.image = pygame.Surface((80, 80))
 emptytmp.load_images()
@@ -55,10 +57,6 @@ TILE_ENCODER = {
     't': tester,
     'w': wood
 }
-# TILEMAP_ENCODER = {}
-# for key in TILE_ENCODER:
-#     TILEMAP_ENCODER[key] = TILE_ENCODER[key].tmp
-
 # up here because rooms
 def read_output (filepath):
     arr = []
@@ -332,9 +330,8 @@ world_graphic = draw_level(master_tiles)
 og_image_width = world_graphic.get_width()
 og_image_height = world_graphic.get_height()
 ZOOM = min(float(WIDTH)/og_image_width, float(HEIGHT)/og_image_height)
-print(ZOOM)
 world_graphic = pygame.transform.scale(world_graphic, (int(og_image_width * ZOOM), int(og_image_height * ZOOM)))
-SCREEN.blit(world_graphic, (0, 0))
+# SCREEN.blit(world_graphic, (0, 0))
 
 # test_level_size = 30
 # SCREEN.blit(TESTING_LEVEL.draw(test_level_size), (WIDTH-test_level_size, HEIGHT-test_level_size))

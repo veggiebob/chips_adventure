@@ -8,6 +8,7 @@ class TileCreator:
         self.tmp = tilemap
     def generateTile(self, tileid, pos):
         self.args['image'] = self.tmp.get_image_index(tileid)
+        self.args['opacity_image'] = self.tmp.get_oimage_index(tileid)
         self.args['pos'] = pos
         self.args['tmp'] = self.tmp
         return Tile(**self.args)
@@ -21,6 +22,8 @@ class Tile:
         self.id = args['id']
         self.pos = args['pos']
         self.image = args['image']
+        self.opacity_image = args['opacity_image']
+        self.opacity = self.p_opt(args, 'opacity', 1.0)
         self.img_width = self.image.get_width()
         self.img_height = self.image.get_height()
         self.walkable = self.p_opt(args, 'walkable', True)
@@ -39,14 +42,17 @@ class Tile:
             'pos':self.pos,
             'image':self.image,
             'walkable':self.walkable,
-            'collider':self.collider
+            'collider':self.collider,
+            'opacity':self.opacity,
+            'opacity_image': self.opacity_image
         })
     def update_pid (self, pid):
-        self.set_image(self.tmp.get_image_index(pid))
+        self.set_image(self.tmp.get_image_index(pid), self.tmp.get_oimage_index(pid))
     def update (self):
         self.needs_update = False
-    def set_image (self, img):
+    def set_image (self, img, oimg):
         self.image = img
+        self.opacity_image = oimg
     def draw (self):
         return self.image
     def draw_at (self, surf):
