@@ -156,12 +156,6 @@ def set_gl_texture (surface, name, index):
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
     glGenerateMipmap(GL_TEXTURE_2D)
 
-
-image = pygame.image.load("assets/test_lighting.bmp")
-image2 = pygame.image.load("assets/noise_512.jpg")
-set_gl_texture(image, "test_texture", 0)
-# set_gl_texture(image2, "noise_texture", 1)
-
 def draw_gl ():
     glClear(GL_COLOR_BUFFER_BIT)
     glUseProgram(shader)
@@ -181,6 +175,12 @@ def draw_gl ():
     glUniform2f(mouse_loc, mouse_pos[0], mouse_pos[1])
     glUniform2f(camera_loc, camera[0], camera[1])
     glDrawArrays(GL_TRIANGLES, 0, 6)
+
+image = pygame.image.load("assets/test_lighting.bmp")
+image2 = pygame.image.load("assets/noise_512.jpg")
+set_gl_texture(image, "test_texture", 0)
+# set_gl_texture(image2, "noise_texture", 1)
+
 
 done = False
 time = 0.0

@@ -1,12 +1,12 @@
-mmm      mmm
-m   gggg   m
+ccc      ccc
+c   gggg   c
             
  g   mm   g 
  g  mmmm  g 
- g  mmmm  g 
- g  mmmm  g 
+ g  mllm  g 
+ g  mllm  g 
  g  mmmm  g 
  g   mm   g 
             
-m   gggg   m
-mmm      mmm
+c   gggg   c
+ccc      ccc

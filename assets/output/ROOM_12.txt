@@ -1,12 +1,12 @@
-w           
-ww          
-wwwwwwwwwww 
-wwggggggggw 
-wwgmmmmmmgw 
-wwgm    mgw 
-wwgm    mgw 
-wwgmmmmmmgw 
-wwggggggggw 
-wwwwwwwwwww 
-ww          
-w           
+c           
+c           
+c l      mm 
+c l       m 
+c l       m 
+c l       m 
+c l       m 
+c l       m 
+c l       m 
+c l      mm 
+c           
+c           

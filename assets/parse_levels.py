@@ -3,10 +3,12 @@ import pygame, os
 from pygame.locals import *
 
 dicter = {
-    (0, 255, 0): 'g',
-    (255, 255, 255): 't',
-    (100, 100, 100): 'm',
-    (200, 100, 0): 'w'
+    (0, 255, 0): 'g', # grass
+    (255, 255, 255): 't', # test
+    (100, 100, 100): 'm', # metal
+    (200, 100, 0): 'w', # wood
+    (50, 50, 50): 'c', # cobblestone
+    (0, 255, 255): 'l' # glass
 }
 mainDefault = ' ' # default character for unrecognized colors
 

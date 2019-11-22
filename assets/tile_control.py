@@ -48,8 +48,8 @@ class Tilemap:
         if self.loaded:
             print('reloading from file destination')
         self.image = pygame.image.load(self.filepath)
-        self.opacity_image = self.generate_opacity_image(self.image, self.opacity)
-    def generate_opacity_image (self, img, opacity=1.0):
+        self.opacity_image = self.generate_opacity_image(self.image)
+    def generate_opacity_image (self, img):
         opacity_image = pygame.Surface((img.get_width(), img.get_height()))
         for i in range(img.get_height()):
             for j in range(img.get_width()):
@@ -58,7 +58,7 @@ class Tilemap:
                 if br < 3:
                     opacity_image.set_at([j, i], (0, 0, 0))
                 else:
-                    b = 255 * opacity
+                    b = 255 * self.opacity
                     opacity_image.set_at([j, i], (b, b, b))
 
         return opacity_image

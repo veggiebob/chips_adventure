@@ -13,6 +13,8 @@ class WorldHandler:
         self.grasstmp = Tilemap('assets/tilemaps/grass_tilemap.png')
         self.metaltmp = Tilemap('assets/tilemaps/metal_tilemap.png')
         self.woodtmp = Tilemap('assets/tilemaps/wood_tilemap.png')
+        self.stonetmp = Tilemap('assets/tilemaps/stone_tilemap.png')
+        self.glasstmp = Tilemap('assets/tilemaps/glass_tilemap.png', 0.0) # opacity is 0.0
         # more go here
 
         self.emptytmp = Tilemap('assets/tilemaps/testing_tilemap.png')
@@ -47,12 +49,28 @@ class WorldHandler:
             walkable=False,
             id=3
         )
+        self.stone = TileCreator(
+            self.stonetmp,
+            name='stone',
+            walkable=False,
+            id=4
+        )
+        self.glass = TileCreator(
+            self.glasstmp,
+            name='glass',
+            walkable=False,
+            id=5,
+            opacity=0.0
+        )
         self.TILE_ENCODER = {
+            # see assets/parse_levels.py
             ' ': self.empty,
             'g': self.grass,
             'm': self.metal,
             't': self.tester,
-            'w': self.wood
+            'w': self.wood,
+            'c': self.stone,
+            'l': self.glass
         }
     def init_rooms (self):
         self.RAW_ROOMS = [
@@ -85,7 +103,7 @@ class WorldHandler:
                 spawnpoint=[0, 0]
             ),
             Room(
-                name='bottom right (broken)',
+                name='bottom right',
                 map=self.RAW_ROOMS[3],
                 doors=[True, False, True, False],
                 treasure=[0, 0],
@@ -99,49 +117,50 @@ class WorldHandler:
                 spawnpoint=[0, 0]
             ),
             Room(
-                name='christmas tree',
-                map=self.RAW_ROOMS[5],
-                doors=[False, False, True, False],
-                treasure=[0, 0],
-                spawnpoint=[0, 0]
-            ),
-            Room(
-                name='metal right-facing',
-                map=self.RAW_ROOMS[6],
-                doors=[False, True, False, False],
-                treasure=[0, 0],
-                spawnpoint=[0, 0]
-            ),
-            Room(
                 name='tube up-down',
-                map=self.RAW_ROOMS[7],
+                map=self.RAW_ROOMS[5],
                 doors=[False, False, True, True],
                 treasure=[0, 0],
                 spawnpoint=[0, 0]
             ),
             Room(
                 name='tube left-right',
-                map=self.RAW_ROOMS[8],
+                map=self.RAW_ROOMS[6],
                 doors=[True, True, False, False],
                 treasure=[0, 0],
                 spawnpoint=[0, 0]
             ),
             Room(
+                name='christmas tree',
+                map=self.RAW_ROOMS[7],
+                doors=[False, False, True, False],
+                treasure=[0, 0],
+                spawnpoint=[0, 0]
+            ),
+            Room(
                 name='christmas-right',
-                map=self.RAW_ROOMS[9],
+                map=self.RAW_ROOMS[8],
                 doors=[True, False, False, False],
                 treasure=[0, 0],
                 spawnpoint=[0, 0]
             ),
             Room(
                 name='christmas-nogravity',
-                map=self.RAW_ROOMS[10],
+                map=self.RAW_ROOMS[9],
                 doors=[False, False, False, True],
                 treasure=[0, 0],
                 spawnpoint=[0, 0]
             ),
             Room(
                 name='christmas-left',
+                map=self.RAW_ROOMS[10],
+                doors=[False, True, False, False],
+                treasure=[0, 0],
+                spawnpoint=[0, 0]
+            ),
+
+            Room(
+                name='metal right-facing',
                 map=self.RAW_ROOMS[11],
                 doors=[False, True, False, False],
                 treasure=[0, 0],

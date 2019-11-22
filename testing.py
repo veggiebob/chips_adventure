@@ -1,3 +1,6 @@
+#todo: DELETE THIS FILE
+# once I'm sure that I can
+
 import pygame, sys, os
 from pygame.locals import *
 from assets.tile_control import *
@@ -9,9 +12,6 @@ WIDTH = 800
 HEIGHT = 800
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
 ZOOM = 1.0 # how much to scale tiles
-#todo: camera containing position & zoom that gives position and scale of looking-at image
-#todo: make a world handler class that makes this file a lot shorter
-#todo: also what if it was a dark exploration game with most things obscured -- light raycasting
 #TILEMAPS
 testtmp = Tilemap('assets/tilemaps/testing_tilemap.png')
 grasstmp = Tilemap('assets/tilemaps/grass_tilemap.png')

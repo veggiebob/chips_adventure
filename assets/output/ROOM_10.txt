@@ -1,12 +1,12 @@
-mmmmmmmmmmmm
-m     w    m
-m     w    m
-m    gwg   m
-m   gwgwg  m
-m    gwg   m
-m     g    m
-m    gwg   m
-m     g    m
-m     g    m
-m g        m
-mgwg       m
+cccccccccccc
+c           
+c           
+c           
+c           
+cww         
+c           
+c           
+c           
+c   g       
+c  gwg      
+cccccccccccc
