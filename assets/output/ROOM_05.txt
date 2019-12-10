@@ -1,12 +1,12 @@
 cc        cc
-cgc      cgc
-c gc    cg c
-c  gc  cg  c
-c   c      c
-c   c  c   c
-c   c  c   c
-c      c   c
-c  gc  cg  c
-c gc    cg c
-cgc      cgc
+ccc      ccc
+c cc    ccvc
+c  cc  cc vc
+cS  c     vc
+c   c  c  vc
+c   c  c  vc
+c      c  vc
+c  cc  cc vc
+c cc    ccvc
+ccc      ccc
 cc        cc

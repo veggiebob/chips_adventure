@@ -6,7 +6,7 @@ c          c
 c          c
 c          c
 c          c
-c          c
+c      S   c
 c    w   g c
 c    w  gwgc
 cccccccccccc

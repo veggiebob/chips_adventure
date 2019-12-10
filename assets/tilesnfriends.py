@@ -23,6 +23,7 @@ class Tile:
         self.pos = args['pos']
         self.image = args['image']
         self.opacity_image = args['opacity_image']
+
         self.opacity = self.p_opt(args, 'opacity', 1.0)
         self.img_width = self.image.get_width()
         self.img_height = self.image.get_height()

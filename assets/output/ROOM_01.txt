@@ -2,11 +2,11 @@ ccccc
 c           
 c  ggg      
 c  g        
-c  g ccc    
-c      c    
-c c    c g  
-c c    c g  
-c c    c g c
-c cccc c g c
+c  gvccc    
+c vvvvvc    
+c cvSvvc g  
+c cvvvvc g  
+c cvvvvc g c
+c ccccvc g c
 c          c
 cccccccccccc

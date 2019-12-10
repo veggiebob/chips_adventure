@@ -56,10 +56,10 @@ class Tilemap:
                 p = img.get_at([j, i])
                 br = (p.r + p.g + p.b) / 3
                 if br < 3:
-                    opacity_image.set_at([j, i], (0, 0, 0))
+                    opacity_image.set_at([j, i], (0, 128, 128))
                 else:
                     b = 255 * self.opacity
-                    opacity_image.set_at([j, i], (b, b, b))
+                    opacity_image.set_at([j, i], (b, 128, 128))
 
         return opacity_image
     def load_images (self, screen=None):

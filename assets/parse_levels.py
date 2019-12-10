@@ -8,7 +8,12 @@ dicter = {
     (100, 100, 100): 'm', # metal
     (200, 100, 0): 'w', # wood
     (50, 50, 50): 'c', # cobblestone
-    (0, 255, 255): 'l' # glass
+    (0, 255, 255): 'l', # glass
+    (50, 100, 50): 'v', # vines
+
+    (150, 150, 0): '$', # treasure
+    (255, 500, 0): '*', # torch
+    (255, 0, 255): 'S' # spawnpoint
 }
 mainDefault = ' ' # default character for unrecognized colors
 

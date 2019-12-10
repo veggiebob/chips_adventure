@@ -3,100 +3,236 @@ from pygame.locals import *
 from level_handling import *
 from worldhandling import *
 from assets.game_gl_wrapper import *
+from enemy_control import *
 pygame.init()
 
-WIDTH = 576 * 2
-HEIGHT = 576
-SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), OPENGL | DOUBLEBUF)
-yeet = WorldHandler()
-test_level = LevelHandler(1)
-test_level.create_layers(yeet)
+# goals:
+# -- make a section and add it
+# make some basic enemies (sprites?) + add in a* pathfinding
+# give 'em a gun and a sprite at least
+# -- collisions with blocks, not opacity images
+# -- add treasure chests, spawnpoints, and torches as TILE INPUTS not user defined
+# create static lights
+# >>>>> perfect world generation (implement placement of treasure and enemies, starting and winning places)
+# >>>>> create enumerated scenes in opengl for different menu navigation / item pickup
 
 epic_gl = GLWrapper()
+
+def reset_game(level_size=1):
+    print('starting . . .')
+    global camera, spawn, ZOOM, mouse_down, time, keys, LEVEL_SIZE, Player, portal_time, portal_gut, c_update_pos, lamplight, health, in_menu, dead, player_dead, bullets, won
+    global yeet, test_level
+    global back, enemy_image_layer, bullet, aa_scari
+
+    yeet = WorldHandler()
+    print("finished world constants")
+    test_level = LevelHandler(level_size)  # LEVEL SIZE
+    print("generated level")
+    test_level.create_layers(yeet)
+    print('created level')
+
+    spawn = to_shader_from_tile_loc(test_level, test_level.r_world[0][random.randint(0, test_level.size - 1)].spawnpoint)
+    camera = [spawn[0], spawn[1]]
+
+    mouse_down = False
+    time = 0.0
+    keys = [None for i in range(1000)]
+    LEVEL_SIZE = test_level.get_size()
+    Player = {
+        'speed': 0.005,
+    }
+    portal_time = 0
+    portal_gut = 0  # 0 - 1
+    c_update_pos = [0, 0]
+    lamplight = 1.0
+    health = 1.0
+    bullets = [] # in [x, y, vx, vy] shader coords
+    in_menu = False
+    dead = 0.0  # 0 - 1
+    player_dead = False
+    ZOOM = 1.0 / test_level.size
+    won = False
+
+    print('loading assets')
+    enemy_spritesheet = pygame.image.load('assets/enemy_spritesheet_2.png')
+    aa_scari = EnemyHandler(test_level, enemy_spritesheet)
+    aa_scari.add_enemy(0, [1, 1])
+    aa_scari.add_enemy(1, [2, 1])
+    aa_scari.add_enemy(2, [2, 1])
+    noise = pygame.image.load('assets/noise_512.jpg')
+    back = pygame.image.load('assets/brick_ground.jpg')
+    text_texture = pygame.image.load('assets/texter.png')
+    ui_background = pygame.image.load('assets/ui_background.png')
+    white_noise = pygame.image.load('assets/shadertoy_actual_gray_noise.png')
+    bullet = pygame.image.load('assets/bullet.png')
+    lvl = test_level.draw_color()
+    lwidth = lvl.get_width()
+    lheight = lvl.get_height()
+    enemy_image_layer = pygame.Surface((lwidth, lheight))
+    enemy_image_layer.fill((0, 0, 0, 0))
+
+    blurred_opacity = test_level.draw_opacity()
+    # for i in range(3):
+    #     blurred_opacity = gaussianBlur(blurred_opacity)
+    print('loaded all assets!')
+    print('setting textures . . .')
+    epic_gl.set_gl_texture(lvl, 'color_layer', 0, clamp_mode=GL_CLAMP_TO_EDGE)
+    epic_gl.set_gl_texture(blurred_opacity, 'opacity_layer', 1, clamp_mode=GL_CLAMP_TO_EDGE, sample_mode=GL_LINEAR)
+    epic_gl.set_gl_texture(noise, 'noise_texture', 2, clamp_mode=GL_REPEAT)
+    epic_gl.set_gl_texture(back, 'background', 3, clamp_mode=GL_REPEAT, sample_mode=GL_LINEAR)
+    epic_gl.set_gl_texture(enemy_image_layer, 'enemy_layer', 4, clamp_mode=GL_CLAMP_TO_EDGE, sample_mode=GL_NEAREST)
+    epic_gl.set_gl_texture(ui_background, 'ui_background', 5, clamp_mode=GL_REPEAT, sample_mode=GL_NEAREST)
+    epic_gl.set_gl_texture(text_texture, 'texter', 6, clamp_mode=GL_CLAMP_TO_EDGE, sample_mode=GL_LINEAR)
+    epic_gl.set_gl_texture(white_noise, 'white_noise', 7, clamp_mode=GL_REPEAT, sample_mode=GL_LINEAR)
+    print('set all textures')
+    print('done!')
+
+
+WIDTH = 500
+HEIGHT = 500
+SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), OPENGL | DOUBLEBUF | FULLSCREEN)
+
+reset_game()
+
 epic_gl.set_uniform('time', '1f')
 epic_gl.set_uniform('mouse', '2f')
 epic_gl.set_uniform('camera', '2f')
+epic_gl.set_uniform('portal_gut', '1f')
+epic_gl.set_uniform('zoom', '1f')
+epic_gl.set_uniform('TELEPORT_DISTANCE', '1f')
+epic_gl.set_uniform('lamplight', '1f')
+epic_gl.set_uniform('health', '1f')
+epic_gl.set_uniform('in_menu', '1i')
+epic_gl.set_uniform('dead', '1f')
+epic_gl.set_uniform('won', '1i')
 
-back = pygame.image.load('assets/ground.jpg')
-lvl = test_level.draw_color()
-lwidth = lvl.get_width()
-lheight = lvl.get_height()
-back = pygame.transform.scale(back, (lwidth, lheight))
-for i in range(lheight):
-    for j in range(lwidth):
-        p = lvl.get_at([j, i])
-        if p.r+p.b+p.g<4:
-            lvl.set_at([j, i], back.get_at([j, i]))
-epic_gl.set_gl_texture(test_level.draw_color(), 'color_layer', 0)
-epic_gl.set_gl_texture(test_level.draw_opacity(), 'opacity_layer', 1)
+epic_gl.update_uniform('TELEPORT_DISTANCE', test_level.teleport_distance) # i no it bad but eh
 
-epic_gl.fragment_shader = """#version 330
-varying vec2 pixel;
-uniform float time;
-uniform vec2 mouse;
-uniform vec2 camera;
-uniform sampler2D color_layer;
-uniform sampler2D opacity_layer;
-//uniform sampler2D test_texture;
-//uniform sampler2D noise_texture;
-float rangle (vec2 v) {
-    return atan(v.y, v.x);
-}
-float dangle (float a, float b) {
-    float d = abs(a-b);
-    return d > 3.14159 ? d - 3.14159 * 2. : d;
-}
-float sq (float x) {
-    return x * x;
-}
-float march (vec2 o) {
-    float br = 1.0;
-    float step_size = length(o)/128.;
-    vec2 d = -normalize(o)*step_size;
-    for (int i = 0; i<128; i++) {
-        br -= texture2D(opacity_layer, (o+0.5) - camera).r*0.05;
-        o += d;
-    }
-    return br;
-}
-void main()
-{
-    vec2 uv = (pixel + 1.)/2.-0.5;
-    vec2 m = mouse-0.5;
-    float mangle = rangle(m);
-    float pangle = rangle(uv);
-
-    float fov = 0.5;
-    float range = 0.8;
-    //get static light value from texture here
-    float static_light = 0.0;
-    float inAngle = smoothstep(fov, 0.0, sq(
-        dangle(pangle, mangle)
-    )) * sq(smoothstep(range, 0.0, length(uv)));
-
-    float op = march(uv);
-
-    vec3 fcolor = vec3(1.0, 1.0, 0.5);
-    vec3 mcolor = texture2D(color_layer, (uv+0.5)-camera).rgb;
-    vec3 col = 
-        fcolor 
-        * op 
-        * max(inAngle, static_light) 
-        * mcolor
-    ;
-
-    // Output to screen
-    gl_FragColor = vec4(col,1.0);
-}"""
+epic_gl.fragment_shader = open('world_fragment.glsl', 'r').read()
 
 epic_gl.gl_init()
 
+# for some reason I thought I might need this function:
+# y = max(x^2-x, 0.1)+x
+
+length = lambda a: math.sqrt(a[0]*a[0]+a[1]*a[1])
+clamp = lambda v,a,b: min(max(v,a),b)
+mix = lambda a,b,t:a+t*(b-a)
+smooth = lambda v:3*clamp(v,0,1)**2-2*clamp(v,0,1)**3
+smoothstep = lambda a,b,v:smooth((v-a)/(b-a))
+sign = lambda a:int(bool(a))*2-1
+
+empty_black = pygame.Surface((8, 8))
+empty_black.fill((0, 0, 0))
+small_empty_black = pygame.Surface((5, 5))
+small_empty_black.fill((0, 0, 0))
+def tile_from_shader_loc (levl, v):
+    c = from_shader_to_tile_loc(levl, v)
+    c[0] = clamp(math.floor(c[0]), 0, levl.tile_dim - 1)
+    c[1] = clamp(math.floor(c[1]), 0, levl.tile_dim - 1)
+    return test_level.master_tiles[c[1]][c[0]]
+def update_color_layer (iters=1): # deprecated
+    global c_update_pos
+    test_level.update_tiles(yeet)
+    nlvl = test_level.draw_color()
+    h = nlvl.get_height()
+    for i in range(iters):
+        update_tex = pygame.Surface((1, 1))
+        col = nlvl.get_at(c_update_pos)
+        if col.r+col.g+col.b < 5:
+            col = back.get_at(c_update_pos)
+        update_tex.set_at([0, 0], col)
+        epic_gl.gl_textures[0][3].blit(update_tex, [c_update_pos[0]-1, h-c_update_pos[1]-1])
+        c_update_pos[0] += 1
+        if c_update_pos[0] >= test_level.draw_color().get_width():
+            c_update_pos[0] = 0
+            c_update_pos[1] += 1
+        if c_update_pos[1] >= test_level.draw_color().get_height():
+            c_update_pos = [0, 0]
+    epic_gl.update_gl_texture(0)
+def update_color_layer_tiles ():
+    global c_update_pos
+    global LEVEL_SIZE
+    nlvl = test_level.draw_color()
+    tile = test_level.master_tiles[c_update_pos[1]-1][c_update_pos[0]]
+    pos = [c_update_pos[0] * Tilemap.TILE_SIZE, LEVEL_SIZE[1] - c_update_pos[1] * Tilemap.TILE_SIZE]
+    # print('updating tile at position ' + str(pos))
+    epic_gl.gl_textures[0][3].blit(tile.image, pos, True)
+    epic_gl.update_gl_texture(0)
+    c_update_pos[0] += 1
+    if c_update_pos[0] >= test_level.tile_dim:
+        c_update_pos[0] = 0
+        c_update_pos[1] += 1
+    if c_update_pos[1] > test_level.tile_dim:
+        c_update_pos = [0, 0]
+
+def update_opacity_layer_tiles ():
+    global c_update_pos
+    global LEVEL_SIZE
+    nlvl = test_level.draw_opacity()
+    tile = test_level.master_tiles[c_update_pos[1]-1][c_update_pos[0]]
+    pos = [c_update_pos[0] * Tilemap.TILE_SIZE, LEVEL_SIZE[1] - c_update_pos[1] * Tilemap.TILE_SIZE]
+    try:
+        from_level = nlvl.subsurface((pos[0], LEVEL_SIZE[1] - pos[1] - Tilemap.TILE_SIZE, Tilemap.TILE_SIZE, Tilemap.TILE_SIZE))
+        epic_gl.gl_textures[1][3].blit(from_level, pos, True, 1)
+    except:
+        pass
+    epic_gl.update_gl_texture(1)
+
+def update_enemy_layer (enemy_handler):
+    # todo: make enemies spawn at random times in random rooms
+    # use this: to_shader_from_tile_loc(test_level, test_level.r_world[random.randint(0, test_level.size - 1][random.randint(0, test_level.size - 1)].spawnpoint)
+    global camera, ZOOM
+    global mouse_down
+    global LEVEL_SIZE
+    global health
+    global ALIVE_TIME
+    iw = enemy_image_layer.get_width()
+    ih = enemy_image_layer.get_height()
+    # for e in enemy_handler.enemies:# todo: make this faster, or the one down there v
+    #     # it's texture 4
+    #     # first, convert to a tile location
+    #     tloc = from_shader_to_tile_loc(test_level, [e.x, e.y])
+    #     epic_gl.gl_textures[4][3].erase(empty_black, (int(tloc[0] * Tilemap.TILE_SIZE)-4, int(LEVEL_SIZE[1] - tloc[1] * Tilemap.TILE_SIZE)-4))
+    health -= enemy_handler.update(camera) / (ALIVE_TIME * 60)
+    for e in enemy_handler.enemies:
+        # first, convert to a tile location
+        tloc = from_shader_to_tile_loc(test_level, [e.x, e.y])
+        epic_gl.gl_textures[4][3].blit(e.get_image(), (int(tloc[0] * Tilemap.TILE_SIZE)-4, int(LEVEL_SIZE[1] - tloc[1] * Tilemap.TILE_SIZE)-4), True)
+    for b in bullets:
+        tloc = from_shader_to_tile_loc(test_level, [b[0], b[1]])
+        x = int(tloc[0] * Tilemap.TILE_SIZE)
+        y = int(LEVEL_SIZE[1] - tloc[1] * Tilemap.TILE_SIZE)
+        epic_gl.gl_textures[4][3].erase(bullet, (x-2, y-2))
+        b[0] += b[2] * ZOOM
+        b[1] += b[3] * ZOOM
+        tloc = from_shader_to_tile_loc(test_level, [b[0], b[1]])
+        x = int(tloc[0] * Tilemap.TILE_SIZE)
+        y = int(LEVEL_SIZE[1] - tloc[1] * Tilemap.TILE_SIZE)
+        b[4] += 1
+        epic_gl.gl_textures[4][3].blit(bullet, (x-2, y-2), True)
+        if b[4] > 1500:
+            bullets.remove(b)
+            continue
+        for e in enemy_handler.enemies:
+            if length([b[0]-e.x, b[1]-e.y]) < EnemyHandler.WORLD_CLOSE:
+                e.hit(10)
+                bullets.remove(b)
+                if e.dead:
+                    enemy_handler.enemies.remove(e)
+                break
+
+    epic_gl.update_gl_texture(4)
+
+
 clock = pygame.time.Clock()
 mouse_pos = [0, 0]
-camera = [0, 0]
-mouse_down = False
-time = 0.0
+LAMP_TIME = 60 * 2 # in seconds
+ALIVE_TIME = 3 # in seconds
+BULLET_SPEED = 0.008
 while True:
+    reset_the_game = False
+    mouse_pressed = False
     for e in pygame.event.get():
         if e.type == QUIT:
             pygame.quit()
@@ -108,23 +244,168 @@ while True:
             ]
         if e.type == MOUSEBUTTONDOWN:
             mouse_down = True
+            mouse_pressed = True
+            print(camera)
+            print(from_shader_to_tile_loc(test_level, camera))
+            print(
+                to_shader_from_tile_loc(
+                    test_level,
+                    from_shader_to_tile_loc(
+                        test_level, camera
+                    )
+                )
+            )
         if e.type == MOUSEBUTTONUP:
             mouse_down = False
+        if e.type == KEYDOWN:
+            keys[e.key] = True
+        if e.type == KEYUP:
+            keys[e.key] = False
 
-    if mouse_down:
-        camera[0] -= (mouse_pos[0] - 0.5) * 0.01
-        camera[1] -= (mouse_pos[1] - 0.5) * 0.01
+    if in_menu:
+        dead = max(dead - 1 / 60 / 3, 0.0)
+        if mouse_down and dead == 0:
+            reset_the_game = True
+            dead = 2
 
-    # SCREEN.blit(test_level.draw_opacity(), (0, 0))
-    # SCREEN.blit(test_level.draw_color(), (576, 0))
-    # test_level.update_tiles(yeet)
-    # pygame.display.update()
+    else:
+
+        # shooting bullets
+        if mouse_pressed:
+            mangle = -math.atan2(mouse_pos[0]-0.5, mouse_pos[1]-0.5) - 3.14159 / 2
+            bullets.append([camera[0], camera[1], math.cos(mangle) * BULLET_SPEED, math.sin(mangle) * BULLET_SPEED, 0])
+
+        # player movement / collisions
+        ctile = tile_from_shader_loc(test_level, camera)
+        if ctile.name == 'gol':
+            won = True
+            in_menu = True
+            dead = 1.0
+            continue
+        # np = [
+        #     clamp(math.floor(-camera[0]*LEVEL_SIZE[0]), 0, LEVEL_SIZE[0]-1),
+        #     clamp(math.floor(LEVEL_SIZE[1]+camera[1]*LEVEL_SIZE[1]), 0, LEVEL_SIZE[1]-1)
+        # ]
+        np = from_shader_to_tile_loc(test_level, camera)
+        np[0] *= Tilemap.TILE_SIZE
+        np[1] *= Tilemap.TILE_SIZE
+        np[0] = math.floor(np[0])
+        np[1] = math.floor(np[1])
+        op = test_level.draw_opacity().get_at(np) # todo: fix this because it's not working
+        portal_t = [(op.g-128)/128, (op.b-128)/128]
+        portal_intensity = smoothstep(0, 0.001, length(portal_t))
+        if portal_intensity > 0.1:
+            portal_time += 1
+        else:
+            portal_time = 0
+
+        if portal_intensity >= 0.2 and portal_time > 60 and length([chx, chy]) * pspeed < 0.001:
+            # do the teleport (teleport_distance DOES work)
+            camera[0] -= portal_t[0] * test_level.teleport_distance * ZOOM
+            camera[1] -= portal_t[1] * test_level.teleport_distance * ZOOM
+            portal_gut = 1.0
+            portal_time = 0
+
+        #MOVEMENT
+        # if mouse_down: # only for debugging
+        #     camera[0] -= (mouse_pos[0] - 0.5) * 0.01
+        #     camera[1] -= (mouse_pos[1] - 0.5) * 0.01
+
+        pspeed = Player['speed'] * ZOOM - max(portal_intensity, portal_gut) * 0.004
+        chx = 0
+        chy = 0
+        if keys[K_COMMA] or keys[K_w] or keys[K_UP]:
+            chy += 1
+        if keys[K_o] or keys[K_s] or keys[K_DOWN]:
+            chy -= 1
+        if keys[K_e] or keys[K_d] or keys[K_RIGHT]:
+            chx += 1
+        if keys[K_a] or keys[K_LEFT]:
+            chx -= 1
+
+        if chx != 0 or chy != 0:
+            # if moving . . .
+            portal_time -= 1
+            chl = math.sqrt(chx * chx + chy * chy)
+            chx /= chl
+            chy /= chl
+            camera[0] -= chx * pspeed
+            camera[1] -= chy * pspeed
+        else:
+            portal_gut = min(portal_gut + portal_intensity / 60, 1)
+
+        # collisions v.2.0
+        if not tile_from_shader_loc(test_level, camera).walkable:
+            look_distance = 2.0
+            stuck = True
+            if tile_from_shader_loc(test_level, [camera[0] + pspeed * chx * look_distance, camera[1]]).walkable:
+                camera[0] += pspeed * chx
+                stuck = False
+            if stuck and tile_from_shader_loc(test_level, [camera[0], camera[1] + pspeed * chy * look_distance]).walkable:
+                camera[1] += pspeed * chy
+                stuck = False
+            if stuck: # ugh
+                done = False
+                for look_distance in range(4, 50): # just in case
+                    for a in range(0, 360, 45):
+                        d = [math.cos(a / 180 * 3.14159), math.sin(a / 180 * 3.14159)]
+                        if tile_from_shader_loc(test_level, [camera[0] + pspeed * look_distance * d[0], camera[1] + pspeed * look_distance * d[1]]).walkable:
+                            camera[0] += d[0] * pspeed
+                            camera[1] += d[1] * pspeed
+                            done = True
+                            break
+                    if done: break
+
+                if not done: # worst case scenario (probably only happens in missed teleportation (to be resolved down there vvv)
+                    camera[1] -= pspeed
+
+        # experimental portal correction -- easier to use >rooms< or gradient?
+        # place = from_shader_to_tile_loc(test_level, camera)
+        # chunk = [math.floor(place[0]/Room.ROOM_SIZE), math.floor(place[1]/Room.ROOM_SIZE)]
+        # rum = test_level.r_world[chunk[0]][chunk[1]]
+        # portal_loc = [rum.portal[0], rum.portal[1]]
+        # splace = to_shader_from_tile_loc(test_level, place)
+        # correction = [splace[0]-camera[0], splace[1]-camera[1]]
+        # correction[0] *= 0.1*portal_gut/length(correction)
+        # correction[1] *= 0.1*portal_gut/length(correction)
+        # camera[0] -= correction[0]
+        # camera[1] -= correction[1]
+
+        # continually changing stuff
+        portal_gut *= 0.98
+        lamplight = max(lamplight - 1 / (LAMP_TIME * 60), 0.0)
+
+
+        # update luh land
+        test_level.update_tiles(yeet)
+        update_color_layer_tiles()
+        update_opacity_layer_tiles()
+        update_enemy_layer(aa_scari)
+
+        if health < 0.0:
+            player_dead = True
+            dead = 1.0
+            in_menu = True
+
+
+    # gl stuff
 
     epic_gl.update_uniform('time', time)
     epic_gl.update_uniform('mouse', mouse_pos)
     epic_gl.update_uniform('camera', camera)
+    epic_gl.update_uniform('portal_gut', portal_gut)
+    epic_gl.update_uniform('zoom', ZOOM)
+    epic_gl.update_uniform('lamplight', lamplight)
+    epic_gl.update_uniform('health', health)
+    epic_gl.update_uniform('in_menu', in_menu)
+    epic_gl.update_uniform('dead', dead)
+    epic_gl.update_uniform('won', won)
+
     epic_gl.draw_gl()
     pygame.display.flip()
     time += 1
     clock.tick(60)
+    if reset_the_game:
+        reset_game(3)
+
 

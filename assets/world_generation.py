@@ -2,6 +2,7 @@ import random, math, pygame
 class Level:
     def __init__ (self, size):
         self.size = size
+        self.tile_dim = size * Room.ROOM_SIZE
         # walls all exist at first
         self.vwalls = [[True for i in range(0, size)] for j in range(0, size)]# [top-down [left-right]] look like |
         self.hwalls = [[True for i in range(0, size)] for j in range(0, size)]# [left-right [top-down]] look like _
@@ -43,7 +44,6 @@ class Level:
         for i in range(0, self.size):
             lin = []
             for j in range(0, self.size):
-                #todo: will I need more room requirements?
                 lin.append(RoomRequirement(doors=self.get_inverted_walls(i, j)))
             lvl.append(lin)
         return lvl
@@ -148,14 +148,20 @@ class Room:
     def __init__ (self, **kwargs): # needs MAP: STRING[], DOORS: INT[], SPAWNPOINT: INT[], TREASURE: INT[]
         self.args = {}
         for key, value in kwargs.items():
-            self.args[key] = value
+            if key == 'meta':
+                for k in value:
+                    self.args[k] = value[k]
+            else:
+                self.args[key] = value
         self.map = self._req(self.args, 'map') # ROOM_SIZE x ROOM_SIZE 2d array of Tiles
         if not len(self.map) == Room.ROOM_SIZE or not len(self.map[0]) == Room.ROOM_SIZE:
             print('not the right size')
         self.name = self._opt(self.args, 'name')
         self.doors = self._req(self.args, 'doors')
         self.spawnpoint = self._req(self.args, 'spawnpoint')
+        self.torch = self._opt(self.args, 'torch', [])
         self.treasure = self._req(self.args, 'treasure')
+        self.portal = self._opt(self.args, 'portal', None) # [inx, iny, outx, outy]
     def _req (self, dict, item):
         try:
             return dict[item]
@@ -215,6 +221,7 @@ class Section:
         self.height = -1
         self.starti = 0
         self.startj = 0
+        self.num_rooms = len(self.rooms)
         self.update_dims()
     def update_dims (self):
         l0 = self.locations[0]
@@ -254,4 +261,4 @@ class Section:
                         break
                 if ok:
                     return [i, j] # return first match
-        return [-1, -1] # no matches
+        return None # no matches
