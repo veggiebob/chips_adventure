@@ -64,7 +64,7 @@ class ImageData:
             for j in range(min(max(pos[0], 0), self.width-1), min(max(pos[0]+width, 0), self.width-1)):
                 ind = (i * self.width + j) * 3
                 p = surf.get_at([j-pos[0], (i-pos[1]) if not flipY else max(height-i+pos[1]-1, 0)])
-                # if p.r + p.g + p.b < 5: continue # todo: yes / no?
+                # if p.r + p.g + p.b < 5: continue
                 self.byte_array_image_data[ind+0] = p.r
                 if channels > 1:
                     self.byte_array_image_data[ind+1] = p.g

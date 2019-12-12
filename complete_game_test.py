@@ -7,20 +7,22 @@ from enemy_control import *
 pygame.init()
 
 # goals:
-# -- make a section and add it
-# make some basic enemies (sprites?) + add in a* pathfinding
-# give 'em a gun and a sprite at least
-# -- collisions with blocks, not opacity images
-# -- add treasure chests, spawnpoints, and torches as TILE INPUTS not user defined
-# create static lights
-# >>>>> perfect world generation (implement placement of treasure and enemies, starting and winning places)
-# >>>>> create enumerated scenes in opengl for different menu navigation / item pickup
+# >>>>> treasures with lamp fluid
+# add in HIDDEN doors, ONE_WAY doors
+# player sprite through ui frame :)))
+# enemy spawning randomly -- not in player room but elsewhere (maybe where player is moving?)
+
+# touchup:
+# static lighting
+# enemy movement / collision
+# water, lava, boots etc.
+
 
 epic_gl = GLWrapper()
 
 def reset_game(level_size=1):
     print('starting . . .')
-    global camera, spawn, ZOOM, mouse_down, time, keys, LEVEL_SIZE, Player, portal_time, portal_gut, c_update_pos, lamplight, health, in_menu, dead, player_dead, bullets, won
+    global camera, spawn, ZOOM, mouse_down, time, keys, LEVEL_SIZE, LEVEL_TILE_SIZE, Player, portal_time, portal_gut, c_update_pos, lamplight, health, in_menu, dead, player_dead, bullets, won
     global yeet, test_level
     global back, enemy_image_layer, bullet, aa_scari
 
@@ -29,7 +31,7 @@ def reset_game(level_size=1):
     test_level = LevelHandler(level_size)  # LEVEL SIZE
     print("generated level")
     test_level.create_layers(yeet)
-    print('created level')
+    print('created level of size %d'%level_size)
 
     spawn = to_shader_from_tile_loc(test_level, test_level.r_world[0][random.randint(0, test_level.size - 1)].spawnpoint)
     camera = [spawn[0], spawn[1]]
@@ -38,6 +40,8 @@ def reset_game(level_size=1):
     time = 0.0
     keys = [None for i in range(1000)]
     LEVEL_SIZE = test_level.get_size()
+    LEVEL_TILE_SIZE = [LEVEL_SIZE[0] / 16, LEVEL_SIZE[1] / 16]
+    print('level tile size is %s'%LEVEL_TILE_SIZE)
     Player = {
         'speed': 0.005,
     }
@@ -54,7 +58,7 @@ def reset_game(level_size=1):
     won = False
 
     print('loading assets')
-    enemy_spritesheet = pygame.image.load('assets/enemy_spritesheet_2.png')
+    enemy_spritesheet = pygame.image.load('assets/enemy_spritesheet_3.png')
     aa_scari = EnemyHandler(test_level, enemy_spritesheet)
     aa_scari.add_enemy(0, [1, 1])
     aa_scari.add_enemy(1, [2, 1])
@@ -90,7 +94,10 @@ def reset_game(level_size=1):
 
 WIDTH = 500
 HEIGHT = 500
-SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), OPENGL | DOUBLEBUF | FULLSCREEN)
+SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), OPENGL | DOUBLEBUF)
+display_info = pygame.display.Info()
+SCREEN_WIDTH, SCREEN_HEIGHT = display_info.current_w, display_info.current_h
+SCREEN_MARGIN = (SCREEN_WIDTH - WIDTH) / 2
 
 reset_game()
 
@@ -229,6 +236,7 @@ clock = pygame.time.Clock()
 mouse_pos = [0, 0]
 LAMP_TIME = 60 * 2 # in seconds
 ALIVE_TIME = 3 # in seconds
+ENEMY_SPAWN_TIME = 10 # in seconds
 BULLET_SPEED = 0.008
 while True:
     reset_the_game = False
@@ -239,22 +247,18 @@ while True:
             sys.exit()
         if e.type == MOUSEMOTION:
             mouse_pos = [
-                e.pos[0] / WIDTH,
-                1 - e.pos[1] / HEIGHT
+                (e.pos[0]-SCREEN_MARGIN) / SCREEN_WIDTH,
+                1 - e.pos[1] / SCREEN_HEIGHT
             ]
         if e.type == MOUSEBUTTONDOWN:
             mouse_down = True
             mouse_pressed = True
             print(camera)
             print(from_shader_to_tile_loc(test_level, camera))
-            print(
-                to_shader_from_tile_loc(
-                    test_level,
-                    from_shader_to_tile_loc(
-                        test_level, camera
-                    )
-                )
-            )
+            t_pos = from_shader_to_tile_loc(test_level, camera, True)
+            r_pos = [math.floor(t_pos[0]/Room.ROOM_SIZE), math.floor(t_pos[1]/Room.ROOM_SIZE)]
+            print('tpos: %s'%t_pos)
+            print('room_pos: %s'%r_pos)
         if e.type == MOUSEBUTTONUP:
             mouse_down = False
         if e.type == KEYDOWN:
@@ -286,12 +290,17 @@ while True:
         #     clamp(math.floor(-camera[0]*LEVEL_SIZE[0]), 0, LEVEL_SIZE[0]-1),
         #     clamp(math.floor(LEVEL_SIZE[1]+camera[1]*LEVEL_SIZE[1]), 0, LEVEL_SIZE[1]-1)
         # ]
+        np = from_shader_to_tile_loc(test_level, camera, True)
+        p_room_pos = [math.floor(np[0]/Room.ROOM_SIZE), math.floor(np[1]/Room.ROOM_SIZE)]
+        p_room = test_level.r_world[p_room_pos[0]][p_room_pos[1]]
+
         np = from_shader_to_tile_loc(test_level, camera)
         np[0] *= Tilemap.TILE_SIZE
         np[1] *= Tilemap.TILE_SIZE
         np[0] = math.floor(np[0])
         np[1] = math.floor(np[1])
-        op = test_level.draw_opacity().get_at(np) # todo: fix this because it's not working
+
+        op = test_level.draw_opacity().get_at(np)
         portal_t = [(op.g-128)/128, (op.b-128)/128]
         portal_intensity = smoothstep(0, 0.001, length(portal_t))
         if portal_intensity > 0.1:
@@ -386,6 +395,20 @@ while True:
             player_dead = True
             dead = 1.0
             in_menu = True
+
+        if time % (60 * ENEMY_SPAWN_TIME) == 0: # todo: random enemy spawning
+            rEn = random.randint(0, 4)
+            rm = [random.randint(0, test_level.size-1), random.randint(0, test_level.size-1)]
+            tries = 100
+            while rm[0] == p_room_pos[0] and rm[1] == p_room_pos[1] and tries > 0:
+                rm = [random.randint(0, test_level.size - 1), random.randint(0, test_level.size - 1)]
+                tries -= 1
+            spawnpoint = test_level.r_world[rm[0]][rm[1]].spawnpoint
+            spawnpoint[0] += rm[0] * Room.ROOM_SIZE
+            spawnpoint[1] += rm[1] * Room.ROOM_SIZE
+            aa_scari.add_enemy(rEn, spawnpoint)
+            print('added an enemy')
+
 
 
     # gl stuff

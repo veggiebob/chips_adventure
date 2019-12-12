@@ -16,6 +16,7 @@ class WorldHandler:
         self.stonetmp = Tilemap('assets/tilemaps/stone_tilemap.png')
         self.glasstmp = Tilemap('assets/tilemaps/glass_tilemap.png', 0.5) # opacity is 50%
         self.vinestmp = Tilemap('assets/tilemaps/vines_tilemap.png', 0.0) # clear
+        self.bricktmp = Tilemap('assets/tilemaps/brick_tilemap.png')
 
         self.goal = Tilemap('assets/tilemaps/testing_tilemap.png', 0)
         self.goal.image = pygame.Surface((80, 80))
@@ -78,6 +79,14 @@ class WorldHandler:
             walkable=True,
             id=6
         )
+        self.brick = TileCreator(
+            self.bricktmp,
+            name='brick',
+            walkable=False,
+            id=7
+        )
+
+        #########################
         self.gol = TileCreator(
             self.goal,
             name='gol',
@@ -91,9 +100,10 @@ class WorldHandler:
             'm': self.metal,
             't': self.tester,
             'w': self.wood,
-            'c': self.stone,
+            'c': self.brick, # self.stone
             'l': self.glass,
             'v': self.vines,
+            'b': self.brick,
 
             'G': self.gol
             # $ = treasure, * = torch, S = spawnpoint

@@ -18,7 +18,9 @@ class EnemyHandler:
             # name, max_health, speed, anim_speed
             ['blob', 10, 3, 30],
             ['bat', 2, 5, 5],
-            ['lava', 15, 2, 45]
+            ['lava', 15, 2, 45],
+            ['person', 50, 1, 15],
+            ['cloud', 1, 8, 45]
         ]
         self.get_walkable_map()
     def update (self, ppos, debug=False):# player position
