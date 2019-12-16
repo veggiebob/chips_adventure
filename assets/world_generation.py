@@ -162,6 +162,7 @@ class Room:
         self.torch = self._opt(self.args, 'torch', [])
         self.treasure = self._req(self.args, 'treasure')
         self.portal = self._opt(self.args, 'portal', None) # [inx, iny, outx, outy]
+        self.has_treasure = False
     def _req (self, dict, item):
         try:
             return dict[item]

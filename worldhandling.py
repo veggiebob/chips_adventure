@@ -17,6 +17,7 @@ class WorldHandler:
         self.glasstmp = Tilemap('assets/tilemaps/glass_tilemap.png', 0.5) # opacity is 50%
         self.vinestmp = Tilemap('assets/tilemaps/vines_tilemap.png', 0.0) # clear
         self.bricktmp = Tilemap('assets/tilemaps/brick_tilemap.png')
+        self.chesttmp = Tilemap('assets/tilemaps/chest_map.png', 0.0)
 
         self.goal = Tilemap('assets/tilemaps/testing_tilemap.png', 0)
         self.goal.image = pygame.Surface((80, 80))
@@ -85,6 +86,12 @@ class WorldHandler:
             walkable=False,
             id=7
         )
+        self.chest = TileCreator(
+            self.chesttmp,
+            name='chest',
+            walkable=True,
+            id=8
+        )
 
         #########################
         self.gol = TileCreator(
@@ -104,6 +111,7 @@ class WorldHandler:
             'l': self.glass,
             'v': self.vines,
             'b': self.brick,
+            '$': self.chest,
 
             'G': self.gol
             # $ = treasure, * = torch, S = spawnpoint
@@ -128,14 +136,14 @@ class WorldHandler:
                 map=self.RAW_ROOMS[0],
                 meta=self.META_ROOMS[0],
                 doors=[True, True, True, True],
-                portal=[3, 3, 10, 10]
+                portal=[5, 3, 5, 4]
             ),
             Room(
                 name="bottom left corner",
                 map=self.RAW_ROOMS[1],
                 meta=self.META_ROOMS[1],
                 doors=[False, True, True, False],
-                portal=[2, 2, 2, 4]
+                portal=[2, 2, 10, 10]
             ),
             Room(
                 name='top left corner',
@@ -208,7 +216,7 @@ class WorldHandler:
                 meta=self.META_ROOMS[15],
                 doors=[True, True, False, True])
         ]
-        self.DEFAULT_ROOM = self.ROOMS[1]
+        self.DEFAULT_ROOM = self.ROOMS[0]
 
         # now do sections
         self.allSections = [ # [code letter, number of rooms]
@@ -294,6 +302,7 @@ class WorldHandler:
                     te = self.TILE_ENCODER[t]
                 except:
                     te = self.TILE_ENCODER[' ']
+
                 tile = te.generateTile(PID, [x * Tilemap.TILE_SIZE, y * Tilemap.TILE_SIZE])
                 line.append(tile)
             tiles.append(line)

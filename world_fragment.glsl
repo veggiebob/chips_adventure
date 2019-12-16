@@ -34,10 +34,6 @@ const float button_radius = 0.01;
 const vec4 t_you_died = vec4(0.5, 0.9609, 0.48, 0.048);
 const vec4 t_loading = vec4(0.5, 0.6455, 0.48, 0.048);
 const vec4 t_you_won = vec4(0.48, 0.75, 0.34, 0.049);
-//center of numbers (4.5, x) is 0.3906
-//y center of numbers is 0.95605
-//width is the same as x
-//height is 1-y which is 0.04394
 const vec4 numbers_box = vec4(0.3906, 1.-0.95605, 0.3906, 0.04394);
 const vec2 digit_size = vec2(0.078125, 0.088890625);
 

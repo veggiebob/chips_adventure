@@ -6,6 +6,12 @@ from assets.game_gl_wrapper import *
 from enemy_control import *
 pygame.init()
 
+# todo: imperative goals
+# > portals WoRkInG
+
+# bad bugs:
+# 10 seconds is displayed at 0
+
 # goals:
 # >>>>> treasures with lamp fluid
 # add in HIDDEN doors, ONE_WAY doors
@@ -18,7 +24,7 @@ pygame.init()
 
 
 epic_gl = GLWrapper()
-LEVEL_SIZE_PROGRESSION = 1
+LEVEL_SIZE_PROGRESSION = 2
 time = 0.0 # global
 def reset_game():
     print('starting . . .')
@@ -136,6 +142,11 @@ def tile_from_shader_loc (levl, v):
     c[0] = clamp(math.floor(c[0]), 0, levl.tile_dim - 1)
     c[1] = clamp(math.floor(c[1]), 0, levl.tile_dim - 1)
     return test_level.master_tiles[c[1]][c[0]]
+def master_tile_pos_from_shader_loc (levl, v):
+    c = from_shader_to_tile_loc(levl, v)
+    c[0] = clamp(math.floor(c[0]), 0, levl.tile_dim - 1)
+    c[1] = clamp(math.floor(c[1]), 0, levl.tile_dim - 1)
+    return [c[1], c[0]]
 def update_color_layer (iters=1): # deprecated
     global c_update_pos
     test_level.update_tiles(yeet)
@@ -289,10 +300,11 @@ while True:
             in_menu = True
             dead = 1.0
             continue
-        # np = [
-        #     clamp(math.floor(-camera[0]*LEVEL_SIZE[0]), 0, LEVEL_SIZE[0]-1),
-        #     clamp(math.floor(LEVEL_SIZE[1]+camera[1]*LEVEL_SIZE[1]), 0, LEVEL_SIZE[1]-1)
-        # ]
+        elif ctile.name == 'chest':
+            lamplight = min(lamplight+0.3, 1.0)
+            p = master_tile_pos_from_shader_loc(test_level, camera)
+            test_level.master_tiles[p[0]][p[1]] = yeet.empty.generateTile(0, [p[0] * Tilemap.TILE_SIZE, p[1] * Tilemap.TILE_SIZE])
+
         np = from_shader_to_tile_loc(test_level, camera, True)
         p_room_pos = [math.floor(np[0]/Room.ROOM_SIZE), math.floor(np[1]/Room.ROOM_SIZE)]
         p_room = test_level.r_world[p_room_pos[0]][p_room_pos[1]]
@@ -302,10 +314,10 @@ while True:
         np[1] *= Tilemap.TILE_SIZE
         np[0] = math.floor(np[0])
         np[1] = math.floor(np[1])
-
         op = test_level.draw_opacity().get_at(np)
         portal_t = [(op.g-128)/128, (op.b-128)/128]
-        portal_intensity = smoothstep(0, 0.001, length(portal_t))
+        portal_intensity = smoothstep(0, 0.01, length(portal_t))
+        print('pixel at %s, portal intensity %s'%(np, portal_intensity))
         if portal_intensity > 0.1:
             portal_time += 1
         else:
@@ -323,7 +335,9 @@ while True:
         #     camera[0] -= (mouse_pos[0] - 0.5) * 0.01
         #     camera[1] -= (mouse_pos[1] - 0.5) * 0.01
 
-        pspeed = Player['speed'] * ZOOM - max(portal_intensity, portal_gut) * 0.004
+        pspeed = Player['speed'] * ZOOM - min(max(portal_intensity, portal_gut) * 0.004, Player['speed'] * ZOOM * 0.8)
+        if ctile.name == 'vines':
+            pspeed *= 0.8
         chx = 0
         chy = 0
         if keys[K_COMMA] or keys[K_w] or keys[K_UP]:
@@ -390,7 +404,7 @@ while True:
 
         # update luh land
         test_level.update_tiles(yeet)
-        update_color_layer_tiles()
+        update_color_layer_tiles() # todo: put these back
         update_opacity_layer_tiles()
         update_enemy_layer(aa_scari)
 
@@ -399,7 +413,7 @@ while True:
             dead = 1.0
             in_menu = True
 
-        if time % (60 * ENEMY_SPAWN_TIME) == 0 and time != 0: # todo: random enemy spawning
+        if time % (60 * ENEMY_SPAWN_TIME) == 0 and time != 0:
             rEn = random.randint(0, 4)
             rm = [random.randint(0, test_level.size-1), random.randint(0, test_level.size-1)]
             tries = 100

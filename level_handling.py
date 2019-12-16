@@ -82,6 +82,26 @@ class LevelHandler:
         world_j = (end_room[1]*Room.ROOM_SIZE+rum_loc[0])
         self.master_tiles[world_i][world_j] = world_handler.gol.generateTile(0, [world_i * Tilemap.TILE_SIZE,world_j * Tilemap.TILE_SIZE])
 
+        #make some treasure -- 30% the number of rooms
+        tries = 1000
+        successes = 0
+        treasure_goal = 0.3
+        total_rooms = self.size * self.size
+        while tries>0 and successes / total_rooms < treasure_goal:
+            tries -= 1
+            rand_room = [random.randint(0, self.size-1), random.randint(0, self.size-1)]
+            rum = self.r_world[rand_room[0]][rand_room[1]]
+            if not rum.has_treasure:
+                successes += 1
+                tries += 1
+                rum.has_treasure = True
+                world_i = rand_room[0]*Room.ROOM_SIZE + rum_loc[0]
+                world_j = rand_room[1]*Room.ROOM_SIZE + rum_loc[1]
+                print('generated a chest')
+                self.master_tiles[world_i][world_j] = world_handler.chest.generateTile(0, [world_i * Tilemap.TILE_SIZE, world_j * Tilemap.TILE_SIZE])
+                self.master_tiles[world_i][world_j].needs_update = True
+
+
         # now images
         self.master_tile_image = world_handler.draw_level(self.master_tiles)
         self.master_opacity_image = world_handler.draw_level(self.master_tiles, True)

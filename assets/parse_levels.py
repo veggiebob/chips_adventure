@@ -12,7 +12,7 @@ dicter = {
     (50, 100, 50): 'v', # vines
 
     (150, 150, 0): '$', # treasure
-    (255, 500, 0): '*', # torch
+    (255, 50, 0): '*', # torch
     (255, 0, 255): 'S' # spawnpoint
 }
 mainDefault = ' ' # default character for unrecognized colors
