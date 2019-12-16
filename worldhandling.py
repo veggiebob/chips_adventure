@@ -220,7 +220,12 @@ class WorldHandler:
 
         # now do sections
         self.allSections = [ # [code letter, number of rooms]
-            ['Z', 2]
+            ['Z', 2],
+            ['B', 3],
+            ['C', 3],
+            ['D', 2],
+            ['E', 2],
+            ['F', 2]
         ]
         self.section_room_data = {}
         self.section_metas = {}
@@ -250,6 +255,30 @@ class WorldHandler:
                 [
                     [0, 0],
                     [0, 1]
+                ]
+            ),
+            'B': Section(
+                [
+                    Room(
+                        map=self.section_room_data['B'][0],
+                        meta=self.section_metas['B'][0],
+                        doors=[False, True, True, False]
+                    ),
+                    Room(
+                        map=self.section_room_data['B'][1],
+                        meta=self.section_metas['B'][1],
+                        doors=[True, True, False, False]
+                    ),
+                    Room(
+                        map=self.section_room_data['B'][2],
+                        meta=self.section_metas['B'][2],
+                        doors=[True, False, False, False]
+                    )
+                ],
+                [
+                    [0, 0],
+                    [0, 1],
+                    [0, 2]
                 ]
             )
         }
