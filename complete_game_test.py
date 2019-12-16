@@ -10,7 +10,6 @@ pygame.init()
 # >>>>> treasures with lamp fluid
 # add in HIDDEN doors, ONE_WAY doors
 # player sprite through ui frame :)))
-# enemy spawning randomly -- not in player room but elsewhere (maybe where player is moving?)
 
 # touchup:
 # static lighting
@@ -19,25 +18,26 @@ pygame.init()
 
 
 epic_gl = GLWrapper()
-
-def reset_game(level_size=1):
+LEVEL_SIZE_PROGRESSION = 1
+time = 0.0 # global
+def reset_game():
     print('starting . . .')
-    global camera, spawn, ZOOM, mouse_down, time, keys, LEVEL_SIZE, LEVEL_TILE_SIZE, Player, portal_time, portal_gut, c_update_pos, lamplight, health, in_menu, dead, player_dead, bullets, won
-    global yeet, test_level
+    global camera, spawn, ZOOM, mouse_down, keys, LEVEL_SIZE, LEVEL_TILE_SIZE, Player, portal_time, portal_gut, c_update_pos, lamplight, health, in_menu, dead, player_dead, bullets, won, gameTime, LAMP_TIME
+    global yeet, test_level, LEVEL_SIZE_PROGRESSION
     global back, enemy_image_layer, bullet, aa_scari
-
+    LAMP_TIME = 30 * LEVEL_SIZE_PROGRESSION  # in seconds
     yeet = WorldHandler()
     print("finished world constants")
-    test_level = LevelHandler(level_size)  # LEVEL SIZE
+    test_level = LevelHandler(LEVEL_SIZE_PROGRESSION)  # LEVEL SIZE
     print("generated level")
     test_level.create_layers(yeet)
-    print('created level of size %d'%level_size)
+    print('created level of size %d'%LEVEL_SIZE_PROGRESSION)
 
     spawn = to_shader_from_tile_loc(test_level, test_level.r_world[0][random.randint(0, test_level.size - 1)].spawnpoint)
     camera = [spawn[0], spawn[1]]
 
     mouse_down = False
-    time = 0.0
+    gameTime = 0.0 # in seconds, stops when won
     keys = [None for i in range(1000)]
     LEVEL_SIZE = test_level.get_size()
     LEVEL_TILE_SIZE = [LEVEL_SIZE[0] / 16, LEVEL_SIZE[1] / 16]
@@ -60,9 +60,6 @@ def reset_game(level_size=1):
     print('loading assets')
     enemy_spritesheet = pygame.image.load('assets/enemy_spritesheet_3.png')
     aa_scari = EnemyHandler(test_level, enemy_spritesheet)
-    aa_scari.add_enemy(0, [1, 1])
-    aa_scari.add_enemy(1, [2, 1])
-    aa_scari.add_enemy(2, [2, 1])
     noise = pygame.image.load('assets/noise_512.jpg')
     back = pygame.image.load('assets/brick_ground.jpg')
     text_texture = pygame.image.load('assets/texter.png')
@@ -102,6 +99,7 @@ SCREEN_MARGIN = (SCREEN_WIDTH - WIDTH) / 2
 reset_game()
 
 epic_gl.set_uniform('time', '1f')
+epic_gl.set_uniform('game_time', '1f')
 epic_gl.set_uniform('mouse', '2f')
 epic_gl.set_uniform('camera', '2f')
 epic_gl.set_uniform('portal_gut', '1f')
@@ -187,8 +185,6 @@ def update_opacity_layer_tiles ():
     epic_gl.update_gl_texture(1)
 
 def update_enemy_layer (enemy_handler):
-    # todo: make enemies spawn at random times in random rooms
-    # use this: to_shader_from_tile_loc(test_level, test_level.r_world[random.randint(0, test_level.size - 1][random.randint(0, test_level.size - 1)].spawnpoint)
     global camera, ZOOM
     global mouse_down
     global LEVEL_SIZE
@@ -234,7 +230,6 @@ def update_enemy_layer (enemy_handler):
 
 clock = pygame.time.Clock()
 mouse_pos = [0, 0]
-LAMP_TIME = 60 * 2 # in seconds
 ALIVE_TIME = 3 # in seconds
 ENEMY_SPAWN_TIME = 10 # in seconds
 BULLET_SPEED = 0.008
@@ -253,16 +248,24 @@ while True:
         if e.type == MOUSEBUTTONDOWN:
             mouse_down = True
             mouse_pressed = True
-            print(camera)
-            print(from_shader_to_tile_loc(test_level, camera))
-            t_pos = from_shader_to_tile_loc(test_level, camera, True)
-            r_pos = [math.floor(t_pos[0]/Room.ROOM_SIZE), math.floor(t_pos[1]/Room.ROOM_SIZE)]
-            print('tpos: %s'%t_pos)
-            print('room_pos: %s'%r_pos)
+            # print(camera)
+            # print(from_shader_to_tile_loc(test_level, camera))
+            # t_pos = from_shader_to_tile_loc(test_level, camera, True)
+            # r_pos = [math.floor(t_pos[0]/Room.ROOM_SIZE), math.floor(t_pos[1]/Room.ROOM_SIZE)]
+            # print('tpos: %s'%t_pos)
+            # print('room_pos: %s'%r_pos)
         if e.type == MOUSEBUTTONUP:
             mouse_down = False
         if e.type == KEYDOWN:
             keys[e.key] = True
+            if e.key == K_BACKSPACE:
+                print('resetting . . .')
+                in_menu = True
+                won = False
+                reset_the_game = True
+                dead = 2.0
+            elif e.key == K_SPACE:
+                print("timestamp: " + str(int(time/60)))
         if e.type == KEYUP:
             keys[e.key] = False
 
@@ -396,7 +399,7 @@ while True:
             dead = 1.0
             in_menu = True
 
-        if time % (60 * ENEMY_SPAWN_TIME) == 0: # todo: random enemy spawning
+        if time % (60 * ENEMY_SPAWN_TIME) == 0 and time != 0: # todo: random enemy spawning
             rEn = random.randint(0, 4)
             rm = [random.randint(0, test_level.size-1), random.randint(0, test_level.size-1)]
             tries = 100
@@ -408,12 +411,15 @@ while True:
             spawnpoint[1] += rm[1] * Room.ROOM_SIZE
             aa_scari.add_enemy(rEn, spawnpoint)
             print('added an enemy')
+        gameTime += 1/60
+
 
 
 
     # gl stuff
 
     epic_gl.update_uniform('time', time)
+    epic_gl.update_uniform('game_time', gameTime)
     epic_gl.update_uniform('mouse', mouse_pos)
     epic_gl.update_uniform('camera', camera)
     epic_gl.update_uniform('portal_gut', portal_gut)
@@ -426,9 +432,11 @@ while True:
 
     epic_gl.draw_gl()
     pygame.display.flip()
-    time += 1
     clock.tick(60)
+    time += 1
     if reset_the_game:
-        reset_game(3)
+        if won:
+            LEVEL_SIZE_PROGRESSION += 1 # if won, go to the next level
+        reset_game()
 
 

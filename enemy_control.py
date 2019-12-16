@@ -147,7 +147,7 @@ class Enemy:
             eloc = self.swapxy(from_shader_to_tile_loc(self.level, [self.x, self.y], True))
             ploc = self.swapxy(from_shader_to_tile_loc(self.level, ppos, True))
             self.a_star = a_star(self.terrain, eloc[0], eloc[1], ploc[0], ploc[1])
-            self.a_star.find_path()
+            self.a_star.find_path(75)
         except:
             pass
     def behave (self, ppos, debug=False): # square walkable map
@@ -167,7 +167,7 @@ class Enemy:
             ]
         )
         """
-        if len(self.a_star.finalPath) > 1:
+        if len(self.a_star.finalPath) > 2:
             self.a_star.finalPath.reverse()
             movement = self.normalize(self.swapxy([
                 (self.a_star.finalPath[1][0] + 0.5-epos[0]),
@@ -178,7 +178,7 @@ class Enemy:
                 ppos[0] - self.x,
                 ppos[1] - self.y
             ]
-            if self.long(disp) < self.speed * Enemy.SPEED_CONSTANT * 2:
+            if self.long(disp) < self.speed * Enemy.SPEED_CONSTANT * 0.5:
                 movement = [0, 0]
                 damage = 1.0
             else:

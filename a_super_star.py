@@ -61,7 +61,7 @@ class a_star:
         return -1
     def find_path (self, maxSteps=10000): ### CALL THIS ONE for determining a final path easily
         if self.terrain[self.starty][self.startx] or self.terrain[self.endy][self.endx]:
-            print('Impossible because one of them is inside a wall.')
+            # print('Impossible because one of them is inside a wall.')
             self.impossiblePath = True
             self.foundEnd = True
         if not self.impossiblePath:
@@ -72,7 +72,7 @@ class a_star:
                 if self.foundEnd:
                     self.determine_final_path()
                 if len(self.open) == 0:
-                    print('Impossible path.')
+                    # print('Impossible path.')
                     self.impossiblePath = True
                     break
                 if steps>maxSteps:

@@ -2,6 +2,7 @@
 // no, this isn't python
 varying vec2 pixel;
 uniform float time;
+uniform float game_time;
 uniform vec2 mouse;
 uniform vec2 camera;
 uniform float zoom;
@@ -33,6 +34,13 @@ const float button_radius = 0.01;
 const vec4 t_you_died = vec4(0.5, 0.9609, 0.48, 0.048);
 const vec4 t_loading = vec4(0.5, 0.6455, 0.48, 0.048);
 const vec4 t_you_won = vec4(0.48, 0.75, 0.34, 0.049);
+//center of numbers (4.5, x) is 0.3906
+//y center of numbers is 0.95605
+//width is the same as x
+//height is 1-y which is 0.04394
+const vec4 numbers_box = vec4(0.3906, 1.-0.95605, 0.3906, 0.04394);
+const vec2 digit_size = vec2(0.078125, 0.088890625);
+
 float rangle (vec2 v) {
     return atan(v.y, v.x);
 }
@@ -121,13 +129,39 @@ float sdBox( in vec2 p, in vec2 b )
 float button (vec2 uv, vec4 b) {
     return sdBox(uv-b.xy, b.zw) - button_radius;
 }
+int getDigits (int n) {
+    return int(round((log(max(float(n), 1.))/log(10.))));
+}
 float getText (vec2 p, vec4 b, vec4 d) {
+    // p is the point being examined in texture space (uv)
+    // b is the bounding box of the image being gotten in image space
+    // d is the place to be displayed in texture space (uv)
     b.xy -= b.zw / 2.;
     d.xy -= d.zw / 2.;
     vec2 rel = (p.xy - d.xy) / d.zw;
     rel = clamp(rel, vec2(-0.5), vec2(1.5));
     vec2 pos = b.zw * rel + b.xy;
     return 1.-texture2D(texter, pos).r;
+}
+//from 0 to 673, 0 to 1024 - 927
+//from 0 to 0.65722, 0 to 0.09473
+//width of numbers 0.078125‬
+float getNumber (vec2 p, vec4 d, int n) {
+    //p is the position in texture space (uv)
+    //d is the place to be displayed in texture space, for the entire number (uv)
+    //n is the number
+    int digits = getDigits(n);
+    float dw = 2. * d.z / float(digits); // width of a digit in display space
+    float br = 0.;
+    for (int i = 0; i<digits; i++) {
+        int digit = int(mod(n/pow(10., float(digits-i-1.)), 10.));
+        float x = (float(digit)+0.5)*digit_size.x; // center x for bounding box
+        vec4 digit_box = vec4(x, numbers_box.y, digit_size.xy/2.);
+        float dx = (float(i)+0.5)*dw+d.x-d.z; // center of digit in display area
+        vec4 display_box = vec4(dx, d.y, dw, d.w) * vec4(1., 1., digit_size.x/digit_size.y, 1.);
+        br = max(br, getText(p, digit_box, display_box));
+    }
+    return br;
 }
 void main()
 {
@@ -143,7 +177,7 @@ void main()
         vec2 distort2 = vec2(sin(Time + puv.y * 2.) * 0.025 - cos(Time) * 0.1, -Time*0.5);
         float spark1 = texture2D(white_noise, puv + distort1).r;
         float spark2 = texture2D(white_noise, puv + distort2).r;
-        float brightness = 8.;
+        float brightness = 10. - dead * 2.;
         float spark = (pow(spark1, brightness) + pow(spark2, brightness)) * exp(-dot(puv-0.5, puv-0.5) * 2.);
         vec3 spark_accent = spark * vec3(1.0, spark, spark);
         vec3 spark_col = vec3(1.0, 0.7, 0.3) * spark_accent;
@@ -156,11 +190,16 @@ void main()
             b = getText(tuv, t_you_won, vec4(0.5, 0.5, 0.5, 0.5 * t_you_won.w / t_you_won.z));
             spark_col = spark_accent * vec3(1.0, 1.0, 0.0);
         }
+        b = max(b, getNumber(
+            tuv,
+            vec4(0.5, 0.3, 0.05 * float(getDigits(int(game_time))), 0.05),
+            int(game_time)
+        ));
         vec3 col = accent * vec3(1.0, 0.7, 0.3) * b * (1.-dead);
         if (won)
             col = vec3(0., 0.5, 1.0) * b * (1.-dead);
         col += spark_col;
-        if (dead > 1.0 && dead < 3.0) { // dead == 2.0
+        if (dead > 1.0 && dead < 3.0) { // dead == 2.0 indicates loading phase
             col = vec3(getText(tuv, t_loading, vec4(0.5, 0.5, 0.5, 0.5 * t_loading.w / t_loading.z)));
         }
         if (won)
